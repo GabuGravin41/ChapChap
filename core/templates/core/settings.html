@@ -1,0 +1,126 @@
+<!-- settings.html -->
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+  <div class="flex items-center mb-8">
+    <div class="bg-indigo-100 dark:bg-indigo-900/40 p-3 rounded-lg mr-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </div>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Account Settings</h1>
+  </div>
+  
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+    <form method="post" class="space-y-8">
+      {% csrf_token %}
+      
+      <!-- Timezone Setting -->
+      <div class="border-b border-gray-200 dark:border-gray-600 pb-6">
+        <div class="flex items-start">
+          <div class="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Timezone</h2>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Scheduled posts will use this timezone</p>
+            <div class="relative w-64">
+              {{ form.timezone }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- AI Tone Setting -->
+      <div class="border-b border-gray-200 dark:border-gray-600 pb-6">
+        <div class="flex items-start">
+          <div class="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Content Tone</h2>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">How should the AI adapt your content?</p>
+            <div class="grid grid-cols-3 gap-4">
+              {% for value, label in form.tone_preference.field.choices %}
+              <label class="relative flex cursor-pointer">
+                <input type="radio" name="tone_preference" value="{{ value }}" class="sr-only peer" {% if form.tone_preference.value == value %}checked{% endif %}>
+                <div class="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg peer-checked:border-indigo-500 peer-checked:ring-2 peer-checked:ring-indigo-200 dark:peer-checked:ring-indigo-800 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <div class="font-medium">{{ label }}</div>
+                  <div class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                    {% if value == 'professional' %}Formal business tone
+                    {% elif value == 'casual' %}Friendly, conversational
+                    {% elif value == 'enthusiastic' %}Energetic & exciting
+                    {% endif %}
+                  </div>
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Notification Settings -->
+      <div>
+        <div class="flex items-start">
+          <div class="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+            <div class="flex-1">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Notifications</h2>
+            
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div class="flex items-center flex-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 dark:text-gray-400 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <div class="min-w-0">
+                <div class="font-medium text-gray-900 dark:text-white">Email Notifications</div>
+                <div class="text-gray-500 dark:text-gray-400 text-sm">Receive analytics reports</div>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer ml-4">
+                <input type="checkbox" name="email_notifications" class="sr-only peer" id="id_email_notifications">
+                <div class="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+              </div>
+              
+              <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div class="flex items-center flex-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 dark:text-gray-400 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <div class="min-w-0">
+                <div class="font-medium text-gray-900 dark:text-white">Push Notifications</div>
+                <div class="text-gray-500 dark:text-gray-400 text-sm">Get alerts on your devices</div>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer ml-4">
+                <input type="checkbox" name="push_notifications" class="sr-only peer" id="id_push_notifications">
+                <div class="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+              </div>
+            </div>
+            </div>
+        </div>
+      </div>
+      
+      <!-- Save Button -->
+      <div class="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-600">
+        <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition duration-150 ease-in-out transform hover:-translate-y-0.5 hover:shadow-lg">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

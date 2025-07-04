@@ -1,0 +1,669 @@
+{% extends 'core/base.html' %}
+
+{% block head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .gauge-container {
+        position: relative;
+        width: 220px;
+        height: 110px;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+    .gauge-background {
+        position: absolute;
+        width: 220px;
+        height: 110px;
+        border-radius: 110px 110px 0 0;
+        background: #e5e7eb;
+        overflow: hidden;
+    }
+    .gauge-fill {
+        position: absolute;
+        width: 220px;
+        height: 110px;
+        border-radius: 110px 110px 0 0;
+        background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+        clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 0);
+        transform-origin: center bottom;
+        transform: rotate(0deg);
+        transition: transform 1.5s ease-in-out;
+    }
+    .gauge-cover {
+        position: absolute;
+        width: 180px;
+        height: 90px;
+        background: white;
+        border-radius: 90px 90px 0 0;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .dark .gauge-cover {
+        background: #1f2937;
+    }
+    .gauge-needle {
+        position: absolute;
+        width: 4px;
+        height: 90px;
+        background: #1f2937;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%) rotate(0deg);
+        transform-origin: bottom center;
+        transition: transform 1.5s ease-in-out;
+        z-index: 10;
+    }
+    .gauge-value {
+        position: absolute;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        z-index: 5;
+    }
+    .gauge-label {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.875rem;
+        color: #6b7280;
+        z-index: 5;
+    }
+    .progress-bar {
+        position: relative;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-fill {
+        position: absolute;
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1s ease-in-out;
+    }
+    .table-row {
+        transition: all 0.3s ease;
+    }
+    .table-row:hover {
+        background-color: #f9fafb;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .dark .table-row:hover {
+        background-color: #374151;
+    }
+    .platform-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        margin-right: 12px;
+    }
+    .chart-container {
+        position: relative;
+        height: 320px;
+    }
+  </style>
+
+{% endblock%}
+
+{% block content %}
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+      <!-- HEADER -->
+      <div class="mb-8 flex items-start">
+          <div>
+              <div class="flex items-center">
+                  <div class="bg-primary p-3 rounded-lg mr-4">
+                      <i class="fas fa-chart-line text-white text-xl"></i>
+                  </div>
+                  <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Performance Analytics</h1>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400 mt-2 ml-16">Monitor your social media performance and audience engagement</p>
+          </div>
+          
+          <div class="ml-auto flex items-center space-x-4">
+              <div class="relative">
+                  <button class="flex items-center text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <i class="far fa-calendar mr-2"></i>
+                      <span>Last 30 days</span>
+                      <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                  </button>
+                  <div class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 hidden border dark:border-gray-600">
+                      <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Last 7 days</a>
+                      <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Last 30 days</a>
+                      <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Last 90 days</a>
+                      <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Custom Range</a>
+                  </div>
+              </div>
+              <button class="flex items-center text-primary bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-800/50 transition-colors">
+                  <i class="fas fa-download mr-2"></i>
+                  Export Report
+              </button>
+          </div>
+      </div>
+
+      <!-- ENGAGEMENT CARDS -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <!-- LIKES CARD -->
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-transform duration-300 hover:shadow-md hover:-translate-y-1">
+              <div class="flex justify-between items-start">
+                  <div>
+                      <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400 flex items-center">
+                          <i class="fas fa-heart text-red-500 mr-2"></i>
+                          Likes
+                      </h3>
+                      <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">1,248</p>
+                  </div>
+                  <div class="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm flex items-center">
+                      <i class="fas fa-arrow-up mr-1 text-xs"></i>
+                      24%
+                  </div>
+              </div>
+              <div class="mt-4">
+                  <div class="progress-bar bg-gray-200 dark:bg-gray-700">
+                      <div class="progress-fill bg-green-500" style="width: 65%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span>Target: 1,000</span>
+                      <span>+248</span>
+                  </div>
+              </div>
+          </div>
+
+          <!-- SHARES CARD -->
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-transform duration-300 hover:shadow-md hover:-translate-y-1">
+              <div class="flex justify-between items-start">
+                  <div>
+                      <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400 flex items-center">
+                          <i class="fas fa-share-alt text-blue-500 mr-2"></i>
+                          Shares
+                      </h3>
+                      <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">327</p>
+                  </div>
+                  <div class="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm flex items-center">
+                      <i class="fas fa-arrow-up mr-1 text-xs"></i>
+                      18%
+                  </div>
+              </div>
+              <div class="mt-4">
+                  <div class="progress-bar bg-gray-200 dark:bg-gray-700">
+                      <div class="progress-fill bg-blue-500" style="width: 45%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span>Target: 300</span>
+                      <span>+27</span>
+                  </div>
+              </div>
+          </div>
+
+          <!-- COMMENTS CARD -->
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-transform duration-300 hover:shadow-md hover:-translate-y-1">
+              <div class="flex justify-between items-start">
+                  <div>
+                      <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400 flex items-center">
+                          <i class="fas fa-comment text-purple-500 mr-2"></i>
+                          Comments
+                      </h3>
+                      <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">189</p>
+                  </div>
+                  <div class="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm flex items-center">
+                      <i class="fas fa-arrow-up mr-1 text-xs"></i>
+                      12%
+                  </div>
+              </div>
+              <div class="mt-4">
+                  <div class="progress-bar bg-gray-200 dark:bg-gray-700">
+                      <div class="progress-fill bg-purple-500" style="width: 32%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span>Target: 150</span>
+                      <span>+39</span>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- CHART & SENTIMENT SECTION -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- ENGAGEMENT CHART -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+              <div class="flex justify-between items-center mb-6">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white">Engagement Over Time</h2>
+                  <div class="flex">
+                      <button class="px-3 py-1 bg-primary text-white rounded-l-lg text-sm">30D</button>
+                      <button class="px-3 py-1 border-t border-b border-gray-300 dark:border-gray-600 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">60D</button>
+                      <button class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-r-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">90D</button>
+                  </div>
+              </div>
+              
+              <!-- Chart container -->
+              <div class="chart-container">
+                  <canvas id="engagementChart"></canvas>
+              </div>
+          </div>
+          
+          <!-- SENTIMENT ANALYSIS -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+              <div class="flex justify-between items-center mb-6">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white">Audience Sentiment</h2>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">Based on 189 comments</div>
+              </div>
+              
+              <!-- Sentiment Gauge -->
+              <div class="flex justify-center mb-8">
+                  <div class="gauge-container">
+                      <div class="gauge-background"></div>
+                      <div class="gauge-fill" id="gaugeFill"></div>
+                      <div class="gauge-cover"></div>
+                      <div class="gauge-needle dark:white" id="gaugeNeedle"></div>
+                      <div class="gauge-value text-gray-900 dark:text-white" id="gaugeValue">72%</div>
+                      <div class="gauge-label">Positive</div>
+                  </div>
+              </div>
+              
+              <!-- Sentiment Breakdown -->
+              <div class="space-y-4">
+                  <div>
+                      <div class="flex justify-between text-sm mb-1">
+                          <span class="text-gray-700 dark:text-gray-300 font-medium flex items-center">
+                              <i class="fas fa-smile text-green-500 mr-2"></i>
+                              Positive
+                          </span>
+                          <span class="text-gray-900 dark:text-white font-medium">72%</span>
+                      </div>
+                      <div class="progress-bar bg-gray-200 dark:bg-gray-700">
+                          <div class="progress-fill bg-green-500" style="width: 72%"></div>
+                      </div>
+                  </div>
+                  
+                  <div>
+                      <div class="flex justify-between text-sm mb-1">
+                          <span class="text-gray-700 dark:text-gray-300 font-medium flex items-center">
+                              <i class="fas fa-meh text-yellow-500 mr-2"></i>
+                              Neutral
+                          </span>
+                          <span class="text-gray-900 dark:text-white font-medium">21%</span>
+                      </div>
+                      <div class="progress-bar bg-gray-200 dark:bg-gray-700">
+                          <div class="progress-fill bg-yellow-500" style="width: 21%"></div>
+                      </div>
+                  </div>
+                  
+                  <div>
+                      <div class="flex justify-between text-sm mb-1">
+                          <span class="text-gray-700 dark:text-gray-300 font-medium flex items-center">
+                              <i class="fas fa-frown text-red-500 mr-2"></i>
+                              Negative
+                          </span>
+                          <span class="text-gray-900 dark:text-white font-medium">7%</span>
+                      </div>
+                      <div class="progress-bar bg-gray-200 dark:bg-gray-700">
+                          <div class="progress-fill bg-red-500" style="width: 7%"></div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+      
+      <!-- TOP PERFORMING POSTS -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 mt-8">
+          <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white">Top Performing Content</h2>
+              <div class="text-sm text-gray-500 dark:text-gray-400">
+                  <i class="fas fa-filter mr-2"></i>
+                  Sorted by Engagement
+              </div>
+          </div>
+          
+          <div class="overflow-x-auto">
+              <table class="w-full">
+                  <thead>
+                      <tr class="text-left text-gray-500 dark:text-gray-400 text-sm border-b dark:border-gray-600">
+                          <th class="pb-4">Content</th>
+                          <th class="pb-4">Platform</th>
+                          <th class="pb-4 text-right">Likes</th>
+                          <th class="pb-4 text-right">Shares</th>
+                          <th class="pb-4 text-right">Sentiment</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <tr class="border-b border-gray-100 dark:border-gray-700 table-row">
+                          <td class="py-4">
+                              <div class="font-medium text-gray-900 dark:text-white">New feature launch announcement</div>
+                              <div class="text-gray-500 dark:text-gray-400 text-sm mt-1">Jun 15, 2025</div>
+                          </td>
+                          <td>
+                              <div class="flex items-center">
+                                  <div class="platform-icon bg-blue-100 dark:bg-blue-900/30">
+                                      <i class="fab fa-facebook-f text-blue-600"></i>
+                                  </div>
+                                  <span class="text-gray-900 dark:text-white">Facebook</span>
+                              </div>
+                          </td>
+                          <td class="text-right font-medium text-gray-900 dark:text-white">248</td>
+                          <td class="text-right font-medium text-gray-900 dark:text-white">42</td>
+                          <td class="text-right">
+                              <div class="inline-flex items-center bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm">
+                                  <i class="fas fa-arrow-up mr-1 text-xs"></i>
+                                  89%
+                              </div>
+                          </td>
+                      </tr>
+                      
+                      <tr class="border-b border-gray-100 dark:border-gray-700 table-row">
+                          <td class="py-4">
+                              <div class="font-medium text-gray-900 dark:text-white">Behind-the-scenes at our workshop</div>
+                              <div class="text-gray-500 dark:text-gray-400 text-sm mt-1">Jun 20, 2025</div>
+                          </td>
+                          <td>
+                              <div class="flex items-center">
+                                  <div class="platform-icon bg-pink-100 dark:bg-pink-900/30">
+                                      <i class="fab fa-instagram text-pink-600"></i>
+                                  </div>
+                                  <span class="text-gray-900 dark:text-white">Instagram</span>
+                              </div>
+                          </td>
+                          <td class="text-right font-medium text-gray-900 dark:text-white">187</td>
+                          <td class="text-right font-medium text-gray-900 dark:text-white">31</td>
+                          <td class="text-right">
+                              <div class="inline-flex items-center bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm">
+                                  <i class="fas fa-arrow-up mr-1 text-xs"></i>
+                                  76%
+                              </div>
+                          </td>
+                      </tr>
+                      
+                      <tr class="table-row">
+                          <td class="py-4">
+                              <div class="font-medium text-gray-900 dark:text-white">Industry insights report</div>
+                              <div class="text-gray-500 dark:text-gray-400 text-sm mt-1">Jun 5, 2025</div>
+                          </td>
+                          <td>
+                              <div class="flex items-center">
+                                  <div class="platform-icon bg-blue-100 dark:bg-blue-900/30">
+                                      <i class="fab fa-linkedin-in text-blue-700"></i>
+                                  </div>
+                                  <span class="text-gray-900 dark:text-white">LinkedIn</span>
+                              </div>
+                          </td>
+                          <td class="text-right font-medium text-gray-900 dark:text-white">156</td>
+                          <td class="text-right font-medium text-gray-900 dark:text-white">63</td>
+                          <td class="text-right">
+                              <div class="inline-flex items-center bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm">
+                                  <i class="fas fa-arrow-up mr-1 text-xs"></i>
+                                  82%
+                              </div>
+                          </td>
+                      </tr>
+                  </tbody>
+              </table>
+          </div>
+      </div>
+      
+      <!-- COMPARISON CARDS -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Platform Comparison</h2>
+              <div class="chart-container">
+                  <canvas id="platformChart"></canvas>
+              </div>
+          </div>
+          
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Engagement by Content Type</h2>
+              <div class="chart-container">
+                  <canvas id="contentChart"></canvas>
+              </div>
+          </div>
+      </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    // Initialize gauge animation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate the sentiment gauge
+        setTimeout(() => {
+            const gaugeFill = document.getElementById('gaugeFill');
+            const gaugeNeedle = document.getElementById('gaugeNeedle');
+            const gaugeValue = document.getElementById('gaugeValue');
+            
+            // Set gauge position (72% positive)
+            const rotation = 72 * 1.8; // 180° for 100%
+            
+            gaugeFill.style.transform = `rotate(${rotation}deg)`;
+            gaugeNeedle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            
+            // Animate the gauge value
+            let count = 0;
+            const interval = setInterval(() => {
+                if (count >= 72) {
+                    clearInterval(interval);
+                    return;
+                }
+                count++;
+                gaugeValue.textContent = `${count}%`;
+            }, 20);
+        }, 500);
+        
+        // Animate progress bars
+        document.querySelectorAll('.progress-fill').forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 300);
+        });
+        
+        // Engagement Chart
+        const ctx = document.getElementById('engagementChart').getContext('2d');
+        const engagementChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jun 1', 'Jun 5', 'Jun 10', 'Jun 15', 'Jun 20', 'Jun 25', 'Jun 30'],
+                datasets: [
+                    {
+                        label: 'Likes',
+                        data: [120, 190, 150, 220, 180, 210, 248],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Shares',
+                        data: [80, 110, 95, 130, 115, 140, 160],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Comments',
+                        data: [45, 70, 60, 85, 75, 95, 110],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 15,
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#1f2937',
+                        bodyColor: '#4b5563',
+                        borderColor: '#e5e7eb',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(229, 231, 235, 0.5)'
+                        },
+                        ticks: {
+                            color: '#6b7280'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#6b7280'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Platform Comparison Chart
+        const platformCtx = document.getElementById('platformChart').getContext('2d');
+        const platformChart = new Chart(platformCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Facebook', 'Instagram', 'X', 'LinkedIn', 'TikTok'],
+                datasets: [{
+                    label: 'Engagement Rate',
+                    data: [4.8, 6.2, 3.5, 5.1, 7.3],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(219, 39, 119, 0.7)',
+                        'rgba(29, 161, 242, 0.7)',
+                        'rgba(10, 102, 194, 0.7)',
+                        'rgba(0, 0, 0, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgb(59, 130, 246)',
+                        'rgb(219, 39, 119)',
+                        'rgb(29, 161, 242)',
+                        'rgb(10, 102, 194)',
+                        'rgb(0, 0, 0)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Engagement: ${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(229, 231, 235, 0.5)'
+                        },
+                        ticks: {
+                            color: '#6b7280',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#6b7280'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Content Type Chart
+        const contentCtx = document.getElementById('contentChart').getContext('2d');
+        const contentChart = new Chart(contentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Images', 'Videos', 'Text Posts', 'Links', 'Stories'],
+                datasets: [{
+                    data: [35, 28, 18, 12, 7],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(219, 39, 119, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgb(16, 185, 129)',
+                        'rgb(59, 130, 246)',
+                        'rgb(139, 92, 246)',
+                        'rgb(245, 158, 11)',
+                        'rgb(219, 39, 119)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            boxWidth: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: ${context.parsed}%`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,10 @@
+[
+    {"value": "UTC", "name": "Coordinated Universal Time"},
+    {"value": "Kenya/Nairobi", "name": "EAT (Nairobi)"},
+    {"value": "America/New_York", "name": "Eastern Time (US & Canada)"},
+    {"value": "America/Los_Angeles", "name": "Pacific Time (US & Canada)"},
+    {"value": "Europe/London", "name": "London"},
+    {"value": "Europe/Paris", "name": "Paris"},
+    {"value": "Asia/Tokyo", "name": "Tokyo"},
+    {"value": "Australia/Sydney", "name": "Sydney"}
+]

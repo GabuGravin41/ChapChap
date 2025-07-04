@@ -1,0 +1,996 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+  <div class="flex items-center mb-8">
+    <div class="bg-indigo-100 dark:bg-indigo-900/40 p-3 rounded-lg mr-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+    </div>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Create Content</h1>
+  </div>
+  
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Input Panel -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Content Input -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Content</label>
+          {{ form.original_text }}
+        </div>
+        
+        <!-- Media Upload -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Media (Optional)</label>
+          <div class="relative group">
+            {{ form.media }}
+            <label for="{{ form.media.id_for_label }}" class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/20 transition-colors">
+              <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                <svg class="w-10 h-10 mb-3 text-gray-400 dark:text-gray-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p class="text-sm text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                  <span class="font-medium">Click to upload</span> or drag and drop
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+              </div>
+            </label>
+          </div>
+          <div id="file-name" class="text-sm text-gray-500 dark:text-gray-400 mt-2"></div>
+          <div id="image-preview-container" class="hidden mt-4">
+            <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Image Preview:</div>
+            <img id="image-preview" class="max-h-40 rounded-lg border border-gray-200 dark:border-gray-700" src="" alt="Uploaded image preview">
+          </div>
+        </div>
+        
+        <!-- Platform Selector -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platforms</label>
+          {% if has_platforms %}
+            <div class="grid grid-cols-3 gap-3">
+              {% for platform_code, platform_name in platform_choices %}
+                <label class="relative flex cursor-pointer">
+                  <input type="checkbox" name="platforms" value="{{ platform_code }}" class="sr-only peer">
+                  <div class="flex flex-col items-center justify-center w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg peer-checked:border-indigo-500 peer-checked:ring-2 peer-checked:ring-indigo-200 dark:peer-checked:ring-indigo-800 dark:text-gray-200">
+                    {% if platform_code == 'TW' %}
+                      <svg class="w-8 h-8 mb-1 text-black dark:text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                      <span>X</span>
+                    {% elif platform_code == 'IG' %}
+                      <svg class="w-8 h-8 mb-1 text-pink-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                      </svg>
+                      <span>Instagram</span>
+                    {% elif platform_code == 'LI' %}
+                      <svg class="w-8 h-8 mb-1 text-blue-700" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                      </svg>
+                      <span>LinkedIn</span>
+                    {% elif platform_code == 'FB' %}
+                      <svg class="w-8 h-8 mb-1 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/>
+                      </svg>
+                      <span>Facebook</span>
+                    {% elif platform_code == 'TT' %}
+                      <svg class="w-8 h-8 mb-1 text-black" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                      </svg>
+                      <span>TikTok</span>
+                    {% elif platform_code == 'YT' %}
+                      <svg class="w-8 h-8 mb-1 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                      <span>YouTube</span>
+                    {% else %}
+                      <span>{{ platform_name }}</span>
+                    {% endif %}
+                  </div>
+                  <span class="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-white text-xs opacity-0 peer-checked:opacity-100">✓</span>
+                </label>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p class="text-yellow-800 dark:text-yellow-200 text-sm">No social media accounts connected. <a href="{% url 'accounts' %}" class="font-medium underline hover:text-yellow-900 dark:hover:text-yellow-100">Connect accounts</a> to select platforms.</p>
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Save Draft (Non-blocking action) -->
+        <div class="mb-6">
+          <button type="button" id="save-draft-btn" class="w-full px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors flex items-center justify-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+            </svg>
+            Save Draft
+          </button>
+        </div>
+        
+        <!-- Tone Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Content Tone</label>
+          <div class="grid grid-cols-3 gap-3">
+            {% for value, label in form.tone.field.choices %}
+              <label class="relative flex cursor-pointer">
+                <input type="radio" name="tone" value="{{ value }}" class="sr-only peer" {% if value == default_tone %}checked{% endif %}>
+                <div class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg text-center peer-checked:border-indigo-500 peer-checked:ring-2 peer-checked:ring-indigo-200 dark:peer-checked:ring-indigo-800 dark:text-gray-200">
+                  {{ label }}
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        
+        <!-- Clear Workflow Progression -->
+        <div class="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <!-- Step 1: Generate AI Previews -->
+          <div class="mb-6">
+            <div class="flex items-center mb-2">
+              <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center mr-2 text-xs font-bold">1</div>
+              <h3 class="text-sm font-medium text-gray-800 dark:text-gray-200">Generate AI Previews</h3>
+              <div id="step1-status" class="ml-auto"></div>
+            </div>
+            <button type="button" id="generate-previews-btn" class="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-lg font-medium flex items-center justify-center transition-all duration-200">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              <span class="generate-btn-text">Generate AI Previews</span>
+              <svg class="w-5 h-5 ml-2 hidden animate-spin generate-loading" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </button>
+            <div id="adaptation-status" class="mt-2 text-sm text-center hidden">
+              <div class="status-message"></div>
+            </div>
+          </div>
+          
+          <!-- Step 2: Publish or Schedule -->
+          <div class="opacity-50 publish-section" id="publish-section">
+            <div class="flex items-center mb-2">
+              <div class="w-6 h-6 rounded-full bg-gray-400 dark:bg-gray-600 text-white flex items-center justify-center mr-2 text-xs font-bold step-number">2</div>
+              <h3 class="text-sm font-medium text-gray-800 dark:text-gray-200">Publish or Schedule</h3>
+              <div id="step2-status" class="ml-auto hidden">
+                <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300">Waiting</span>
+              </div>
+            </div>
+            
+            <!-- Publishing Options -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <!-- Schedule Toggle -->
+              <div class="mb-4 flex items-center">
+                <span class="text-sm text-gray-700 dark:text-gray-300 mr-2">Schedule for later</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="schedule-toggle" class="sr-only peer" value="yes">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+              
+              <!-- Scheduling DateTime (Hidden by Default) -->
+              <div id="schedule-datetime" class="mb-4 hidden">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Date and Time</label>
+                <div class="relative">
+                  {{ form.scheduled_time }}
+                </div>
+              </div>
+              
+              <!-- Publish/Schedule Button -->
+              <button type="submit" id="publish-schedule-btn" class="w-full px-6 py-3 bg-gray-400 text-white rounded-lg font-medium flex items-center justify-center transition-colors cursor-not-allowed" disabled title="Generate AI previews first">
+                <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                </svg>
+                <span id="publish-btn-text">{% if editing_draft %}Update & Publish Now{% else %}Publish Now{% endif %}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Preview Panel -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">AI Preview</h2>
+        <div class="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded-full">Live Preview</div>
+      </div>
+      
+      <!-- Platform Tabs -->
+      <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
+        <nav class="-mb-px flex space-x-6 overflow-x-auto">
+          <button type="button" class="text-indigo-600 dark:text-indigo-400 whitespace-nowrap py-3 px-1 border-b-2 border-indigo-600 dark:border-indigo-400 font-medium text-sm platform-tab" data-platform="IG">Instagram</button>
+          <button type="button" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap py-3 px-1 font-medium text-sm platform-tab" data-platform="TW">X</button>
+          <button type="button" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap py-3 px-1 font-medium text-sm platform-tab" data-platform="LI">LinkedIn</button>
+          <button type="button" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap py-3 px-1 font-medium text-sm platform-tab" data-platform="FB">Facebook</button>
+          <button type="button" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap py-3 px-1 font-medium text-sm platform-tab" data-platform="TT">TikTok</button>
+          <button type="button" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap py-3 px-1 font-medium text-sm platform-tab" data-platform="YT">YouTube</button>
+        </nav>
+      </div>
+      
+      <!-- Preview Content: Instagram -->
+      <div id="preview-IG" class="preview-content border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-md mx-auto bg-gray-50 dark:bg-gray-700">
+        <div class="bg-gray-200 dark:bg-gray-600 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center preview-image-container">
+          <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 preview-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <img class="preview-uploaded-image hidden w-full h-48 object-cover rounded-xl" src="" alt="Preview image">
+        </div>
+        <p class="preview-text text-gray-800 dark:text-gray-200 mb-4">Just launched our AI-powered social media tool! 🚀 Perfect for busy entrepreneurs who want consistent brand presence without the hassle. 👇</p>
+        <div class="preview-hashtags flex flex-wrap gap-2 mb-4">
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#AITools</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#EntrepreneurLife</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#ProductLaunch</span>
+        </div>
+        <div class="text-gray-500 dark:text-gray-400 text-xs flex items-center">
+          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          AI-Generated Preview
+        </div>
+      </div>
+      
+      <!-- Preview Content: X -->
+      <div id="preview-TW" class="preview-content border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-md mx-auto bg-gray-50 dark:bg-gray-700 hidden">
+        <div class="flex items-start mb-4">
+          <div class="bg-gray-300 dark:bg-gray-600 border-2 border-dashed rounded-full w-12 h-12 mr-3"></div>
+          <div>
+            <div class="font-medium dark:text-gray-200">Your Name</div>
+            <div class="text-gray-500 dark:text-gray-400 text-sm">@yourhandle</div>
+          </div>
+        </div>
+        <p class="preview-text text-gray-800 dark:text-gray-200 mb-4">Just launched our AI-powered social media tool! Perfect for busy entrepreneurs who want consistent brand presence without the hassle.</p>
+        <div class="preview-image-container bg-gray-200 dark:bg-gray-600 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center">
+          <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 preview-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <img class="preview-uploaded-image hidden w-full h-48 object-cover rounded-xl" src="" alt="Preview image">
+        </div>
+        <div class="preview-hashtags flex flex-wrap gap-2 mb-4">
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#AITools</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#SocialMedia</span>
+        </div>
+        <div class="text-gray-400 dark:text-gray-500 text-sm">10:30 AM · Jun 30, 2025</div>
+        <div class="flex justify-between text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+          <span>💬 12</span>
+          <span>🔄 24</span>
+          <span>❤️ 156</span>
+          <span>📤</span>
+        </div>
+      </div>
+      
+      <!-- Preview Content: LinkedIn -->
+      <div id="preview-LI" class="preview-content border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-md mx-auto bg-gray-50 dark:bg-gray-700 hidden">
+        <div class="flex items-start mb-4">
+          <div class="bg-gray-300 dark:bg-gray-600 border-2 border-dashed rounded-full w-12 h-12 mr-3"></div>
+          <div>
+            <div class="font-medium dark:text-gray-200">Your Name</div>
+            <div class="text-gray-500 dark:text-gray-400 text-sm">Professional Title · Company</div>
+          </div>
+        </div>
+        <p class="preview-text text-gray-800 dark:text-gray-200 mb-4">I'm excited to announce the launch of our new AI-powered social media tool, designed specifically for busy professionals seeking to maintain a consistent brand presence efficiently.</p>
+        <div class="preview-image-container bg-gray-200 dark:bg-gray-600 border-2 border-dashed rounded-xl w-full h-32 mb-4 flex items-center justify-center">
+          <svg class="w-8 h-8 text-gray-400 dark:text-gray-500 preview-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path>
+          </svg>
+          <img class="preview-uploaded-image hidden w-full h-32 object-cover rounded-xl" src="" alt="Preview image">
+        </div>
+        <div class="preview-hashtags flex flex-wrap gap-2 mb-4">
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#AITools</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#ProfessionalNetwork</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#BusinessGrowth</span>
+        </div>
+        <div class="text-gray-500 dark:text-gray-400 text-sm flex items-center">
+          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          AI-Generated Preview
+        </div>
+      </div>
+      
+      <!-- Preview Content: Facebook -->
+      <div id="preview-FB" class="preview-content border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-md mx-auto bg-gray-50 dark:bg-gray-700 hidden">
+        <div class="flex items-start mb-4">
+          <div class="bg-gray-300 dark:bg-gray-600 border-2 border-dashed rounded-full w-12 h-12 mr-3"></div>
+          <div>
+            <div class="font-medium dark:text-gray-200">Your Name</div>
+            <div class="text-gray-500 dark:text-gray-400 text-sm">Facebook</div>
+          </div>
+        </div>
+        <p class="preview-text text-gray-800 dark:text-gray-200 mb-4">Sharing some thoughts: Our new AI-powered social media tool makes managing your online presence so much easier. What do you think?</p>
+        <div class="preview-image-container bg-gray-200 dark:bg-gray-600 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center">
+          <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 preview-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <img class="preview-uploaded-image hidden w-full h-48 object-cover rounded-xl" src="" alt="Preview image">
+        </div>
+        <div class="flex justify-between text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+          <span>👍 Like</span>
+          <span>💬 Comment</span>
+          <span>📤 Share</span>
+        </div>
+        <div class="text-gray-500 dark:text-gray-400 text-sm flex items-center mt-4">
+          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          AI-Generated Preview
+        </div>
+      </div>
+      
+      <!-- Preview Content: TikTok -->
+      <div id="preview-TT" class="preview-content border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-md mx-auto bg-gray-50 dark:bg-gray-700 hidden">
+        <div class="flex items-start mb-4">
+          <div class="bg-gray-300 dark:bg-gray-600 border-2 border-dashed rounded-full w-12 h-12 mr-3"></div>
+          <div>
+            <div class="font-medium dark:text-gray-200">Your TikTok</div>
+            <div class="text-gray-500 dark:text-gray-400 text-sm">@yourhandle</div>
+          </div>
+        </div>
+        <div class="preview-image-container bg-gray-200 dark:bg-gray-600 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center">
+          <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 preview-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+          </svg>
+          <img class="preview-uploaded-image hidden w-full h-48 object-cover rounded-xl" src="" alt="Preview image">
+        </div>
+        <p class="preview-text text-gray-800 dark:text-gray-200 mb-4">Create engaging short-form content that captures attention within seconds! #viral #trending</p>
+        <div class="preview-hashtags flex flex-wrap gap-2 mb-4">
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#TikTokTips</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#ContentCreator</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#viral</span>
+        </div>
+        <div class="text-gray-500 dark:text-gray-400 text-sm flex items-center">
+          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          AI-Generated Preview
+        </div>
+      </div>
+      
+      <!-- Preview Content: YouTube -->
+      <div id="preview-YT" class="preview-content border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-md mx-auto bg-gray-50 dark:bg-gray-700 hidden">
+        <div class="flex items-start mb-4">
+          <div class="bg-gray-300 dark:bg-gray-600 border-2 border-dashed rounded-full w-12 h-12 mr-3"></div>
+          <div>
+            <div class="font-medium dark:text-gray-200">Your Channel</div>
+            <div class="text-gray-500 dark:text-gray-400 text-sm">YouTube</div>
+          </div>
+        </div>
+        <div class="preview-image-container bg-gray-200 dark:bg-gray-600 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center">
+          <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 preview-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+          </svg>
+          <img class="preview-uploaded-image hidden w-full h-48 object-cover rounded-xl" src="" alt="Preview image">
+        </div>
+        <div class="mb-4">
+          <div class="font-medium text-gray-900 dark:text-white text-lg mb-2">How to Maximize Your Social Media Presence</div>
+          <p class="preview-text text-gray-800 dark:text-gray-200">In this video, I share proven strategies for growing your audience across multiple platforms. Don't forget to like and subscribe!</p>
+        </div>
+        <div class="preview-hashtags flex flex-wrap gap-2 mb-4">
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#SocialMediaTips</span>
+          <span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm">#ContentStrategy</span>
+        </div>
+        <div class="text-gray-500 dark:text-gray-400 text-sm flex items-center">
+          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          AI-Generated Preview
+        </div>
+      </div>
+      
+      <!-- AI Suggestions -->
+      <div class="mt-8">
+        <h3 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm-1-7.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+          </svg>
+          AI Suggestions
+        </h3>
+        <div class="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800">
+          <p class="text-gray-700 dark:text-gray-300 ai-suggestions-content">"Consider adding a call-to-action like 'Try our free beta today!' to increase engagement"</p>
+          <button class="mt-3 text-indigo-600 dark:text-indigo-400 font-medium flex items-center apply-suggestion-btn hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors">
+            Apply Suggestion
+            <svg class="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // File upload display
+    const fileInput = document.querySelector('input[type="file"]');
+    const fileNameDisplay = document.getElementById('file-name');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    
+    if (fileInput) {
+      fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+          const file = e.target.files[0];
+          fileNameDisplay.textContent = `Selected: ${file.name}`;
+          
+          // Show the image preview in the upload section
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            // Update the main image preview
+            imagePreview.src = event.target.result;
+            imagePreviewContainer.classList.remove('hidden');
+            
+            // Update all platform preview images (both visible and hidden)
+            document.querySelectorAll('.preview-image-container').forEach(container => {
+              // Hide placeholder SVG
+              const placeholder = container.querySelector('.preview-placeholder');
+              if (placeholder) placeholder.classList.add('hidden');
+              
+              // Show and update image
+              const previewImage = container.querySelector('.preview-uploaded-image');
+              if (previewImage) {
+                previewImage.src = event.target.result;
+                previewImage.classList.remove('hidden');
+              }
+            });
+          };
+          reader.readAsDataURL(file);
+        } else {
+          fileNameDisplay.textContent = '';
+          imagePreviewContainer.classList.add('hidden');
+          
+          // Reset all previews
+          document.querySelectorAll('.preview-image-container').forEach(container => {
+            const placeholder = container.querySelector('.preview-placeholder');
+            if (placeholder) placeholder.classList.remove('hidden');
+            
+            const previewImage = container.querySelector('.preview-uploaded-image');
+            if (previewImage) {
+              previewImage.classList.add('hidden');
+              previewImage.src = '';
+            }
+          });
+        }
+      });
+      
+      // If there's already an image preview shown, apply it to all platform previews immediately
+      if (!imagePreviewContainer.classList.contains('hidden') && imagePreview.src) {
+        document.querySelectorAll('.preview-image-container').forEach(container => {
+          // Hide placeholder SVG
+          const placeholder = container.querySelector('.preview-placeholder');
+          if (placeholder) placeholder.classList.add('hidden');
+          
+          // Show and update image
+          const previewImage = container.querySelector('.preview-uploaded-image');
+          if (previewImage) {
+            previewImage.src = imagePreview.src;
+            previewImage.classList.remove('hidden');
+          }
+        });
+      }
+    }
+    
+    // Platform tab functionality
+    const platformTabs = document.querySelectorAll('.platform-tab');
+    const previewContainers = document.querySelectorAll('.preview-content');
+    
+    platformTabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs
+        platformTabs.forEach(t => {
+          t.classList.remove('text-indigo-600', 'dark:text-indigo-400', 'border-indigo-600', 'dark:border-indigo-400');
+          t.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-700', 'dark:hover:text-gray-300');
+          t.classList.remove('border-b-2');
+        });
+        
+        // Add active class to clicked tab
+        this.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-700', 'dark:hover:text-gray-300');
+        this.classList.add('text-indigo-600', 'dark:text-indigo-400', 'border-indigo-600', 'dark:border-indigo-400', 'border-b-2');
+        
+        // Hide all preview containers
+        previewContainers.forEach(container => {
+          container.classList.add('hidden');
+        });
+        
+        // Show the selected preview container
+        const platform = this.getAttribute('data-platform');
+        const targetPreview = document.getElementById(`preview-${platform}`);
+        targetPreview.classList.remove('hidden');
+        
+        // Ensure image visibility state is preserved when switching tabs
+        const mainImageVisible = !document.getElementById('image-preview-container').classList.contains('hidden');
+        
+        if (mainImageVisible) {
+          // If main image is visible, ensure the target preview container shows the image
+          const imageContainer = targetPreview.querySelector('.preview-image-container');
+          if (imageContainer) {
+            const placeholder = imageContainer.querySelector('.preview-placeholder');
+            if (placeholder) placeholder.classList.add('hidden');
+            
+            const previewImage = imageContainer.querySelector('.preview-uploaded-image');
+            if (previewImage && document.getElementById('image-preview').src) {
+              previewImage.src = document.getElementById('image-preview').src;
+              previewImage.classList.remove('hidden');
+            }
+          }
+        }
+      });
+    });
+    
+    // Generate AI Previews functionality
+    const generateBtn = document.getElementById('generate-previews-btn');
+    const generateBtnText = document.querySelector('.generate-btn-text');
+    const generateLoading = document.querySelector('.generate-loading');
+    const adaptationStatus = document.getElementById('adaptation-status');
+    const statusMessage = adaptationStatus.querySelector('.status-message');
+    const publishScheduleBtn = document.getElementById('publish-schedule-btn');
+    const publishSection = document.getElementById('publish-section');
+    const stepNumber = document.querySelector('.step-number');
+    const publishBtnText = document.getElementById('publish-btn-text');
+    const scheduleToggle = document.getElementById('schedule-toggle');
+    const scheduleDatetime = document.getElementById('schedule-datetime');
+    
+    let adaptationComplete = false;
+    let previewData = {};
+    
+    // Helper function to get CSRF token
+    function getCSRFToken() {
+      return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+    
+    // Helper function to show status message
+    function showStatus(message, isError = false) {
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message ${isError ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`;
+      adaptationStatus.classList.remove('hidden');
+    }
+    
+    // Helper function to update button states
+    function updateButtonStates(isLoading = false) {
+      if (isLoading) {
+        generateBtn.disabled = true;
+        generateBtn.classList.add('cursor-not-allowed', 'opacity-75');
+        generateBtnText.textContent = 'Generating...';
+        generateLoading.classList.remove('hidden');
+      } else {
+        generateBtn.disabled = false;
+        generateBtn.classList.remove('cursor-not-allowed', 'opacity-75');
+        generateBtnText.textContent = 'Generate AI Previews';
+        generateLoading.classList.add('hidden');
+      }
+      
+      // Enable/disable publish section based on adaptation status
+      if (adaptationComplete && !isLoading) {
+        // Enable publishing section
+        publishSection.classList.remove('opacity-50');
+        stepNumber.classList.remove('bg-gray-400', 'dark:bg-gray-600');
+        stepNumber.classList.add('bg-indigo-600', 'dark:bg-indigo-500');
+        
+        // Enable publish button
+        publishScheduleBtn.disabled = false;
+        publishScheduleBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+        publishScheduleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'dark:bg-indigo-500', 'dark:hover:bg-indigo-600');
+        publishScheduleBtn.title = 'Ready to publish';
+      } else {
+        // Disable publishing section
+        publishSection.classList.add('opacity-50');
+        stepNumber.classList.add('bg-gray-400', 'dark:bg-gray-600');
+        stepNumber.classList.remove('bg-indigo-600', 'dark:bg-indigo-500');
+        
+        // Disable publish button
+        publishScheduleBtn.disabled = true;
+        publishScheduleBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+        publishScheduleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700', 'dark:bg-indigo-500', 'dark:hover:bg-indigo-600');
+        publishScheduleBtn.title = 'Generate AI previews first';
+      }
+    }
+    
+    // Helper function to validate form inputs
+    function validateInputs() {
+      const contentInput = document.querySelector('textarea[name="original_text"]');
+      const selectedPlatforms = document.querySelectorAll('input[name="platforms"]:checked');
+      
+      if (!contentInput.value.trim()) {
+        showStatus('Please enter some content before generating previews.', true);
+        return false;
+      }
+      
+      if (selectedPlatforms.length === 0) {
+        showStatus('Please select at least one platform.', true);
+        return false;
+      }
+      
+      return true;
+    }
+    
+    // Helper function to update preview content
+    function updatePreviewContent(platform, content, hashtags = []) {
+      const previewContainer = document.getElementById(`preview-${platform}`);
+      if (!previewContainer) return;
+      
+      const previewText = previewContainer.querySelector('.preview-text');
+      const hashtagContainer = previewContainer.querySelector('.preview-hashtags');
+      
+      // Get platform limits for character count display
+      const platformLimits = {
+        'TW': 280,
+        'FB': 5000,
+        'IG': 2200,
+        'LI': 3000,
+        'TT': 2200, 
+        'YT': 5000
+      };
+      
+      // Update text content
+      if (previewText) {
+        previewText.textContent = content || 'Content will appear here...';
+        previewText.classList.remove('text-gray-500', 'dark:text-gray-400');
+        
+        // Add character count if available
+        const charLimit = platformLimits[platform];
+        if (charLimit) {
+          const charCount = content ? content.length : 0;
+          const countElement = document.createElement('div');
+          countElement.className = `text-xs mt-2 ${charCount > charLimit ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`;
+          countElement.textContent = `${charCount}/${charLimit} characters`;
+          
+          // Remove existing count if present
+          const existingCount = previewText.parentNode.querySelector('.text-xs');
+          if (existingCount) {
+            existingCount.remove();
+          }
+          
+          // Add after preview text
+          previewText.parentNode.insertBefore(countElement, previewText.nextSibling);
+        }
+      }
+      
+      // Update hashtags
+      if (hashtagContainer && hashtags.length > 0) {
+        // Clear existing hashtags
+        hashtagContainer.innerHTML = '';
+        
+        // Add new hashtags
+        hashtags.forEach(tag => {
+          const span = document.createElement('span');
+          span.className = 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm';
+          span.textContent = tag.startsWith('#') ? tag : `#${tag}`;
+          hashtagContainer.appendChild(span);
+        });
+      }
+    }
+    
+    // Helper function to extract hashtags from content
+    function extractHashtags(content) {
+      const hashtagRegex = /#[\w]+/g;
+      const matches = content.match(hashtagRegex);
+      return matches || [];
+    }
+    
+    // Main generate previews function
+    async function generatePreviews() {
+      if (!validateInputs()) return;
+      
+      // Clear any previous preview data
+      adaptationComplete = false;
+      updateButtonStates(true);
+      showStatus('Generating AI previews...');
+      
+      // Show loading indicator in preview panels
+      document.querySelectorAll('.preview-content').forEach(container => {
+        const previewText = container.querySelector('.preview-text');
+        if (previewText) {
+          previewText.innerHTML = '<span class="text-gray-500 dark:text-gray-400">Loading preview...</span>';
+        }
+      });
+      
+      // Collect form data
+      const formData = new FormData();
+      const contentInput = document.querySelector('textarea[name="original_text"]');
+      const selectedPlatforms = document.querySelectorAll('input[name="platforms"]:checked');
+      const toneInput = document.querySelector('input[name="tone"]:checked');
+      const mediaInput = document.querySelector('input[type="file"]');
+      
+      formData.append('text', contentInput.value);
+      formData.append('tone', toneInput ? toneInput.value : 'professional');
+      
+      selectedPlatforms.forEach(platform => {
+        formData.append('platforms[]', platform.value);
+      });
+      
+      if (mediaInput && mediaInput.files[0]) {
+        formData.append('media', mediaInput.files[0]);
+      }
+      
+      try {
+        const response = await fetch('{% url "generate_preview" %}', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': getCSRFToken(),
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+          // Update previews with generated content
+          previewData = data.previews || {};
+          
+          // Reset preview texts to default first (for platforms without generated content)
+          document.querySelectorAll('.preview-content').forEach(container => {
+            const platformId = container.id.split('-')[1];
+            const previewText = container.querySelector('.preview-text');
+            const hashtagContainer = container.querySelector('.preview-hashtags');
+            
+            if (previewText && !previewData[platformId]) {
+              previewText.textContent = "No preview generated for this platform";
+              previewText.classList.add('text-gray-500', 'dark:text-gray-400');
+            }
+            
+            if (hashtagContainer) {
+              hashtagContainer.innerHTML = '';
+            }
+          });
+          
+          // Apply successful adaptations
+          Object.entries(previewData).forEach(([platform, content]) => {
+            const hashtags = extractHashtags(content);
+            updatePreviewContent(platform, content, hashtags);
+          });
+          
+          // Show any errors as warnings
+          if (data.errors && Object.keys(data.errors).length > 0) {
+            const errorCount = Object.keys(data.errors).length;
+            const errorMessages = Object.values(data.errors).join(', ');
+            showStatus(`Generated previews for ${data.successful_platforms.length} platform(s). ${errorCount} platform(s) had errors: ${errorMessages}`, true);
+          } else {
+            showStatus(`Successfully generated previews for ${data.successful_platforms.length} platform(s)!`);
+          }
+          
+          // Update AI suggestions if provided
+          if (data.suggestions) {
+            const suggestionsContent = document.querySelector('.ai-suggestions-content');
+            if (suggestionsContent) {
+              suggestionsContent.textContent = data.suggestions;
+            }
+          }
+          
+          if (data.successful_platforms && data.successful_platforms.length > 0) {
+            adaptationComplete = true;
+            
+            // Show success message with processing time if available
+            const processingTime = data.processing_time ? ` (${data.processing_time})` : '';
+            showStatus(`Successfully generated previews for ${data.successful_platforms.length} platform(s)!${processingTime}`);
+            
+            // Show any warnings as non-blocking notifications
+            const warnings = Object.entries(data.errors || {})
+              .filter(([key]) => key.includes('_warning'))
+              .map(([_, value]) => value);
+            
+            if (warnings.length > 0) {
+              // Create a warning element below status message
+              const warningDiv = document.createElement('div');
+              warningDiv.className = 'text-yellow-600 dark:text-yellow-400 text-xs mt-1';
+              warningDiv.textContent = warnings.join(', ');
+              adaptationStatus.appendChild(warningDiv);
+            }
+          } else {
+            adaptationComplete = false;
+            showStatus('Failed to generate any previews. Please try again.', true);
+          }
+          
+        } else {
+          // Handle API error response
+          adaptationComplete = false;
+          let errorMessage = 'Failed to generate previews. ';
+          
+          if (data.message) {
+            errorMessage += data.message;
+          } else if (data.errors) {
+            if (Array.isArray(data.errors)) {
+              errorMessage += data.errors.join(', ');
+            } else if (typeof data.errors === 'object') {
+              errorMessage += Object.values(data.errors).flat().join(', ');
+            } else {
+              errorMessage += data.errors;
+            }
+          } else {
+            errorMessage += 'Please try again.';
+          }
+          
+          showStatus(errorMessage, true);
+        }
+        
+      } catch (error) {
+        console.error('Error generating previews:', error);
+        adaptationComplete = false;
+        showStatus('Network error or server problem. Please check your connection and try again.', true);
+      } finally {
+        updateButtonStates(false);
+      }
+    }
+    
+    // Attach event listener to generate button
+    if (generateBtn) {
+      generateBtn.addEventListener('click', generatePreviews);
+    }
+    
+    // Apply suggestion functionality
+    const applySuggestionBtn = document.querySelector('.apply-suggestion-btn');
+    if (applySuggestionBtn) {
+      applySuggestionBtn.addEventListener('click', function() {
+        const suggestion = document.querySelector('.ai-suggestions-content').textContent;
+        const contentInput = document.querySelector('textarea[name="original_text"]');
+        
+        if (contentInput && suggestion) {
+          // Simple implementation: append suggestion to content
+          const currentContent = contentInput.value.trim();
+          const newContent = currentContent + (currentContent ? '\n\n' : '') + suggestion.replace(/['"]/g, '');
+          contentInput.value = newContent;
+          
+          // Trigger input event to update live preview
+          contentInput.dispatchEvent(new Event('input'));
+          
+          showStatus('Suggestion applied! Generate new previews to see the updated content.');
+          adaptationComplete = false;
+          updateButtonStates(false);
+        }
+      });
+    }
+    
+    // Reset adaptation state when content changes
+    const contentInput = document.querySelector('textarea[name="original_text"]');
+    if (contentInput) {
+      contentInput.addEventListener('input', function() {
+        // Reset adaptation status when content changes
+        if (adaptationComplete) {
+          adaptationComplete = false;
+          updateButtonStates(false);
+          showStatus('Content changed. Generate new previews to update adaptations.', true);
+        }
+        
+        // Update placeholder text in previews (only if no AI-generated content)
+        if (!adaptationComplete) {
+          const previewTexts = document.querySelectorAll('.preview-text');
+          const content = this.value;
+          
+          previewTexts.forEach(element => {
+            if (!element.closest('.preview-content').classList.contains('hidden')) {
+              element.textContent = content || "Your content will appear here...";
+            }
+          });
+        }
+      });
+    }
+    
+    // Reset adaptation state when platforms change
+    const platformInputs = document.querySelectorAll('input[name="platforms"]');
+    platformInputs.forEach(input => {
+      input.addEventListener('change', function() {
+        if (adaptationComplete) {
+          adaptationComplete = false;
+          updateButtonStates(false);
+          showStatus('Platform selection changed. Generate new previews.', true);
+        }
+      });
+    });
+    
+    // Reset adaptation state when tone changes
+    const toneInputs = document.querySelectorAll('input[name="tone"]');
+    toneInputs.forEach(input => {
+      input.addEventListener('change', function() {
+        if (adaptationComplete) {
+          adaptationComplete = false;
+          updateButtonStates(false);
+          showStatus('Tone changed. Generate new previews to update adaptations.', true);
+        }
+      });
+    });
+    
+    // Initialize button states
+    updateButtonStates(false);
+    
+    // Handle form submission
+    const form = document.querySelector('form[method="post"]');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        if (!adaptationComplete) {
+          e.preventDefault();
+          showStatus('Please generate AI previews before publishing.', true);
+          return false;
+        }
+        
+        // Handle scheduling
+        const scheduleToggleChecked = scheduleToggle && scheduleToggle.checked;
+        const scheduledTimeInput = document.querySelector('input[name="scheduled_time"]');
+        
+        if (!scheduleToggleChecked && scheduledTimeInput) {
+          // If not scheduling, set scheduled_time to now
+          const now = new Date();
+          const isoString = now.toISOString().slice(0, 16); // Format as YYYY-MM-DDThh:mm
+          scheduledTimeInput.value = isoString;
+        }
+        
+        // If adaptation is complete, allow normal form submission
+        showStatus(scheduleToggleChecked ? 'Scheduling content...' : 'Publishing content...');
+        return true;
+      });
+    }
+    
+    // Handle schedule toggle
+    if (scheduleToggle) {
+      scheduleToggle.addEventListener('change', function() {
+        if (this.checked) {
+          scheduleDatetime.classList.remove('hidden');
+          publishBtnText.textContent = '{% if editing_draft %}Update & Schedule{% else %}Schedule{% endif %}';
+        } else {
+          scheduleDatetime.classList.add('hidden');
+          publishBtnText.textContent = '{% if editing_draft %}Update & Publish Now{% else %}Publish Now{% endif %}';
+        }
+      });
+    }
+    
+    // Save draft functionality
+    const saveDraftBtn = document.getElementById('save-draft-btn');
+    if (saveDraftBtn) {
+      saveDraftBtn.addEventListener('click', function() {
+        // Handle save draft - this doesn't require adaptation
+        showStatus('Saving draft...');
+        
+        // Create a temporary form to submit as draft
+        const draftForm = document.createElement('form');
+        draftForm.method = 'POST';
+        draftForm.action = '{% url "save_draft" %}';
+        
+        // Add form fields
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        draftForm.appendChild(csrfInput);
+        
+        // Add content
+        const contentInput = document.querySelector('textarea[name="original_text"]');
+        if (contentInput) {
+          const textInput = document.createElement('input');
+          textInput.type = 'hidden';
+          textInput.name = 'original_text';
+          textInput.value = contentInput.value;
+          draftForm.appendChild(textInput);
+        }
+        
+        // Add other form fields as needed
+        const toneInput = document.querySelector('input[name="tone"]:checked');
+        if (toneInput) {
+          const toneHidden = document.createElement('input');
+          toneHidden.type = 'hidden';
+          toneHidden.name = 'tone';
+          toneHidden.value = toneInput.value;
+          draftForm.appendChild(toneHidden);
+        }
+        
+        // Add selected platforms
+        const selectedPlatforms = document.querySelectorAll('input[name="platforms"]:checked');
+        selectedPlatforms.forEach((platform, index) => {
+          const platformInput = document.createElement('input');
+          platformInput.type = 'hidden';
+          platformInput.name = 'platforms';
+          platformInput.value = platform.value;
+          draftForm.appendChild(platformInput);
+        });
+        
+        // Submit the draft form
+        document.body.appendChild(draftForm);
+        draftForm.submit();
+      });
+    }
+  });
+</script>
+{% endblock %}

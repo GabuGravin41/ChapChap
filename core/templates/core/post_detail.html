@@ -1,0 +1,93 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex justify-between items-start mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Post Details</h1>
+    <a href="{% url 'all_posts' %}" class="text-primary hover:underline flex items-center">
+      <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+      </svg>
+      Back to all posts
+    </a>
+  </div>
+  
+  <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-gray-900">Content</h2>
+      <span class="bg-indigo-100 text-primary px-3 py-1 rounded-full text-sm">
+        {{ post.content.get_tone_display }}
+      </span>
+    </div>
+    
+    <div class="prose max-w-none mb-8">
+      {{ post.content.original_text|linebreaks }}
+    </div>
+    
+    {% if post.content.media %}
+    <div class="mb-8">
+      <div class="text-gray-500 text-sm mb-2">Media</div>
+      <img src="{{ post.content.media.url }}" alt="Post media" class="max-w-full rounded-lg">
+    </div>
+    {% endif %}
+    
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <div class="text-gray-500 text-sm mb-1">Created</div>
+        <div class="font-medium">{{ post.content.created_at|date:"M d, Y h:i A" }}</div>
+      </div>
+      <div>
+        <div class="text-gray-500 text-sm mb-1">Scheduled</div>
+        <div class="font-medium">{{ post.content.scheduled_time|date:"M d, Y h:i A" }}</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-gray-900">Published Version</h2>
+      <span class="bg-gray-100 px-3 py-1 rounded-full text-sm">
+        {{ post.get_platform_display }}
+      </span>
+    </div>
+    
+    <div class="prose max-w-none mb-8">
+      {{ post.adapted_text|linebreaks }}
+    </div>
+    
+    <div class="border-t border-gray-200 pt-6 mt-6">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">Engagement Metrics</h3>
+      
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-indigo-50 p-4 rounded-lg text-center">
+          <div class="text-2xl font-bold text-primary">{{ post.metrics.likes|default:"0" }}</div>
+          <div class="text-gray-500">Likes</div>
+        </div>
+        <div class="bg-indigo-50 p-4 rounded-lg text-center">
+          <div class="text-2xl font-bold text-primary">{{ post.metrics.shares|default:"0" }}</div>
+          <div class="text-gray-500">Shares</div>
+        </div>
+        <div class="bg-indigo-50 p-4 rounded-lg text-center">
+          <div class="text-2xl font-bold text-primary">{{ post.metrics.comments|default:"0" }}</div>
+          <div class="text-gray-500">Comments</div>
+        </div>
+      </div>
+      
+      <div class="flex items-center">
+        <div class="text-gray-500 mr-4">Sentiment:</div>
+        <div class="flex items-center">
+          <div class="w-6 h-6 rounded-full 
+            {% if post.metrics.sentiment > 0.6 %}bg-green-500
+            {% elif post.metrics.sentiment > 0.4 %}bg-yellow-500
+            {% else %}bg-red-500{% endif %} mr-2"></div>
+          <span>
+            {% if post.metrics.sentiment > 0.6 %}Positive
+            {% elif post.metrics.sentiment > 0.4 %}Neutral
+            {% else %}Negative{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
