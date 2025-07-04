@@ -1,0 +1,12 @@
+Django>=4.2,<5.0
+django-apscheduler
+requests
+python-dotenv
+textblob
+transformers
+openai
+pillow
+gunicorn
+whitenoise
+psycopg2-binary
+dj-database-url

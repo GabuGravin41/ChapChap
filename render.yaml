@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chapchap
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn chapchap.wsgi:application"
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
