@@ -6,6 +6,7 @@
   <title>ChapChap - AI Social Agent</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -28,6 +29,8 @@
       }
     }
   </script>
+  
+
   <style>
     /* Custom styles for dark mode transition */
     html.dark {
@@ -37,8 +40,34 @@
       transition: background-color 0.3s ease, border-color 0.3s ease;
     }
   </style>
+
+  <!-- Dark Mode Toggle Script - Must be outside block to work on all pages -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Dark Mode Toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+        
+        // Check for saved preference in localStorage
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            htmlElement.classList.add('dark');
+        }
+        
+        // Toggle dark mode
+        darkModeToggle.addEventListener('click', function() {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('darkMode', 'disabled');
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('darkMode', 'enabled');
+            }
+        });
+    });
+  </script>
   {% block head %}{% endblock %} 
 </head>
+
 
 <body class="bg-gray-50 dark:bg-gray-900 font-sans dark:text-gray-100">
   <div class="flex min-h-screen">
@@ -95,30 +124,7 @@
     </div>
   </div>
   
-  <!-- Dark Mode Toggle Script - Must be outside block to work on all pages -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Dark Mode Toggle
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const htmlElement = document.documentElement;
-        
-        // Check for saved preference in localStorage
-        if (localStorage.getItem('darkMode') === 'enabled') {
-            htmlElement.classList.add('dark');
-        }
-        
-        // Toggle dark mode
-        darkModeToggle.addEventListener('click', function() {
-            if (htmlElement.classList.contains('dark')) {
-                htmlElement.classList.remove('dark');
-                localStorage.setItem('darkMode', 'disabled');
-            } else {
-                htmlElement.classList.add('dark');
-                localStorage.setItem('darkMode', 'enabled');
-            }
-        });
-    });
-  </script>
+  
   
   {% block extra_js %}{% endblock %}
 </body>
