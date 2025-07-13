@@ -6,7 +6,7 @@ class SocialAccount(models.Model):
     PLATFORM_CHOICES = [
         ('FB', 'Facebook'),
         ('IG', 'Instagram'),
-        ('X', 'X'),
+        ('X', 'X (Twitter)'),
         ('LI', 'LinkedIn'),
         ('TT', 'TikTok'),
         ('YT', 'YouTube'),
@@ -31,7 +31,7 @@ class Content(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     original_text = models.TextField()
     media = models.FileField(upload_to='content_media/', blank=True, null=True)
-    platforms = models.JSONField(default=list)  # ['FB', 'TW', etc.]
+    platforms = models.JSONField(default=list)  # ['FB', 'X', etc.]
     scheduled_time = models.DateTimeField(default=timezone.now)
     tone = models.CharField(max_length=20, choices=TONE_CHOICES, default='professional')
     created_at = models.DateTimeField(auto_now_add=True)

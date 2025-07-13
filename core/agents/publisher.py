@@ -2,6 +2,8 @@ import os
 import requests
 import json
 import random
+import time
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.conf import settings
 from . import analytics
@@ -10,9 +12,184 @@ import logging
 # Set up logging
 logger = logging.getLogger(__name__)
 
+class XAPIClient:
+    """Enhanced X (Twitter) API client with proper authentication and error handling"""
+    
+    def __init__(self, user_access_token=None, user_access_token_secret=None):
+        # App-level credentials (from settings)
+        self.api_key = getattr(settings, 'X_API_KEY', '')
+        self.api_secret = getattr(settings, 'X_API_SECRET', '')
+        self.bearer_token = getattr(settings, 'X_BEARER_TOKEN', '')
+        
+        # User-level credentials (passed in or from settings for fallback)
+        self.access_token = user_access_token or getattr(settings, 'X_ACCESS_TOKEN', '')
+        self.access_token_secret = user_access_token_secret or getattr(settings, 'X_ACCESS_TOKEN_SECRET', '')
+        
+        self.base_url = 'https://api.twitter.com/2'
+        self.upload_url = 'https://upload.twitter.com/1.1'
+        
+        # Rate limiting
+        self.rate_limits = {
+            'tweets': {'limit': 300, 'window': 900, 'remaining': 300, 'reset': time.time()},
+            'users': {'limit': 75, 'window': 900, 'remaining': 75, 'reset': time.time()}
+        }
+    
+    def get_auth_headers(self):
+        """Get authentication headers for API requests"""
+        # For OAuth 2.0 Bearer token (app-only auth)
+        if self.bearer_token and not self.access_token:
+            return {
+                'Authorization': f'Bearer {self.bearer_token}',
+                'Content-Type': 'application/json'
+            }
+        
+        # For OAuth 1.0a (user context) - we'll use bearer token for simplicity
+        # In a full implementation, you'd use OAuth 1.0a signing here
+        if self.access_token:
+            return {
+                'Authorization': f'Bearer {self.access_token}',
+                'Content-Type': 'application/json'
+            }
+        
+        raise ValueError("No valid X authentication credentials available")
+    
+    def check_rate_limit(self, endpoint='tweets'):
+        """Check if we're within rate limits"""
+        limit_info = self.rate_limits.get(endpoint, {})
+        current_time = time.time()
+        
+        # Reset count if window has passed
+        if current_time > limit_info.get('reset', 0):
+            limit_info['remaining'] = limit_info['limit']
+            limit_info['reset'] = current_time + limit_info['window']
+        
+        return limit_info['remaining'] > 0
+    
+    def update_rate_limit(self, endpoint='tweets'):
+        """Update rate limit counter"""
+        if endpoint in self.rate_limits:
+            self.rate_limits[endpoint]['remaining'] -= 1
+    
+    def post_tweet(self, text, media_ids=None, reply_to=None):
+        """Post a tweet with optional media"""
+        if not self.check_rate_limit('tweets'):
+            raise Exception("Rate limit exceeded for tweets")
+        
+        if not text or len(text) > 280:
+            raise ValueError("Tweet text must be between 1 and 280 characters")
+        
+        url = f"{self.base_url}/tweets"
+        headers = self.get_auth_headers()
+        
+        payload = {"text": text}
+        
+        if media_ids:
+            payload["media"] = {"media_ids": media_ids}
+        
+        if reply_to:
+            payload["reply"] = {"in_reply_to_tweet_id": reply_to}
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            self.update_rate_limit('tweets')
+            data = response.json()
+            
+            return {
+                'success': True,
+                'tweet_id': data['data']['id'],
+                'text': data['data']['text']
+            }
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"X API request failed: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'details': getattr(e, 'response', {}).get('text', '') if hasattr(e, 'response') else ''
+            }
+    
+    def upload_media(self, media_file):
+        """Upload media to X and return media ID"""
+        if not media_file:
+            return None
+        
+        try:
+            # Initialize upload
+            init_url = f"{self.upload_url}/media/upload.json"
+            init_headers = self.get_auth_headers()
+            
+            init_data = {
+                "command": "INIT",
+                "media_type": "image/jpeg",  # Adjust based on file type
+                "total_bytes": media_file.size
+            }
+            
+            init_response = requests.post(init_url, data=init_data, headers=init_headers)
+            init_response.raise_for_status()
+            media_id = init_response.json()['media_id_string']
+            
+            # Append media data
+            append_url = f"{self.upload_url}/media/upload.json"
+            append_data = {
+                "command": "APPEND",
+                "media_id": media_id,
+                "segment_index": 0
+            }
+            
+            files = {'media': media_file}
+            append_response = requests.post(append_url, data=append_data, files=files, headers=init_headers)
+            append_response.raise_for_status()
+            
+            # Finalize upload
+            finalize_data = {
+                "command": "FINALIZE",
+                "media_id": media_id
+            }
+            
+            finalize_response = requests.post(init_url, data=finalize_data, headers=init_headers)
+            finalize_response.raise_for_status()
+            
+            return media_id
+            
+        except Exception as e:
+            logger.error(f"X media upload failed: {str(e)}")
+            return None
+    
+    def get_tweet_metrics(self, tweet_id):
+        """Get metrics for a specific tweet"""
+        url = f"{self.base_url}/tweets/{tweet_id}"
+        headers = self.get_auth_headers()
+        params = {
+            'tweet.fields': 'public_metrics,created_at,context_annotations'
+        }
+        
+        try:
+            response = requests.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            
+            data = response.json()
+            tweet_data = data['data']
+            metrics = tweet_data.get('public_metrics', {})
+            
+            return {
+                'likes': metrics.get('like_count', 0),
+                'retweets': metrics.get('retweet_count', 0),
+                'replies': metrics.get('reply_count', 0),
+                'quotes': metrics.get('quote_count', 0),
+                'impressions': metrics.get('impression_count', 0),
+                'created_at': tweet_data.get('created_at'),
+                'context': tweet_data.get('context_annotations', [])
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get X metrics: {str(e)}")
+            return None
+
 # Platform API configurations
 PLATFORM_APIS = {
-    'TW': {
+    'X': {
         'base_url': 'https://api.twitter.com/2',
         'auth_type': 'oauth2',
         'endpoints': {
@@ -65,7 +242,7 @@ def upload_media(platform, access_token, media_file):
     
     try:
         # Twitter media upload
-        if platform == 'TW':
+        if platform == 'X':
             # Step 1: Initialize upload
             init_url = f"{config['base_url']}{config['endpoints']['upload']}"
             init_data = {
@@ -152,7 +329,8 @@ def publish_to_platform(published_post, access_token):
         published_post.metrics = {}
     
     # For demo purposes in development, simulate successful publishing
-    if settings.DEBUG and platform not in ['YT', 'TT']:  # These already have simulation
+    # BUT exclude X platform - X should always use real API
+    if settings.DEBUG and platform not in ['X', 'YT', 'TT']:
         logger.info(f"DEBUG MODE: Simulating publishing to {platform}")
         published_post.published_id = f"debug_sim_{platform}_{published_post.id}_{timezone.now().timestamp()}"
         published_post.metrics = {
@@ -183,7 +361,7 @@ def publish_to_platform(published_post, access_token):
     
     try:
         # Twitter (X) posting
-        if platform == 'TW':
+        if platform == 'X':
             url = f"{config['base_url']}{config['endpoints']['tweet']}"
             headers = {"Authorization": f"Bearer {access_token}"}
             data = {"text": published_post.adapted_text}
@@ -348,51 +526,89 @@ def get_linkedin_user_id(access_token):
         return None
 
 def publish_content(published_post):
-    """Publish content to a platform"""
-    access_token = get_access_token(published_post.content.user, published_post.platform)
-    if not access_token:
-        logger.error(f"No access token for {published_post.platform}")
-        published_post.metrics = {'error': 'No connected account found'}
-        published_post.published_at = timezone.now()
-        published_post.save()
-        return False
+    """Enhanced publish content function with better error handling and X integration"""
+    platform = published_post.platform
     
-    # Publish to platform
+    # Initialize metrics if not present
+    if not published_post.metrics:
+        published_post.metrics = {}
+    
     try:
-        success = publish_to_platform(published_post, access_token)
+        # Get access token for the platform
+        access_token = get_access_token(published_post.content.user, platform)
         
-        if success:
-            published_post.published_at = timezone.now()
+        # Handle X (Twitter) publishing with our enhanced client
+        if platform == 'X':
+            logger.info(f"Publishing to X using enhanced client...")
             
-            # For MVP, simulate metrics - in production we'd fetch real metrics later
-            if not published_post.metrics:  # Don't overwrite existing metrics
-                published_post.metrics = {
-                    'likes': 10 + (published_post.id % 50),
-                    'shares': 2 + (published_post.id % 10),
-                    'comments': 1 + (published_post.id % 5),
-                    'sentiment': 0.7 + (published_post.id % 30)/100
+            if not access_token:
+                logger.error(f"No X access token found for user {published_post.content.user.username}")
+                published_post.metrics['error'] = {
+                    'message': 'X account not connected. Please connect your X account first.',
+                    'platform': 'X',
+                    'timestamp': timezone.now().isoformat()
                 }
+                published_post.save()
+                return False
             
-            published_post.save()
+            # Create user-specific X client
+            user_x_client = XAPIClient(user_access_token=access_token)
             
-            # Track engagement metrics
-            from . import analytics
-            analytics.track_engagement(published_post)
+            # Handle media upload if present
+            media_ids = None
+            if published_post.content.media:
+                media_id = user_x_client.upload_media(published_post.content.media)
+                if media_id:
+                    media_ids = [media_id]
+                else:
+                    logger.warning("X media upload failed, posting without media")
             
-            logger.info(f"Successfully published post {published_post.id} to {published_post.platform}")
-            return True
+            # Post the tweet
+            result = user_x_client.post_tweet(
+                text=published_post.adapted_text,
+                media_ids=media_ids
+            )
+            
+            if result['success']:
+                published_post.published_id = result['tweet_id']
+                published_post.published_at = timezone.now()
+                published_post.metrics.update({
+                    'likes': 0,
+                    'retweets': 0,
+                    'replies': 0,
+                    'quotes': 0,
+                    'impressions': 0,
+                    'published_via': 'x_api_v2',
+                    'published_at': timezone.now().isoformat(),
+                    'user_account': published_post.content.user.username
+                })
+                published_post.save()
+                
+                logger.info(f"Successfully published to X for user {published_post.content.user.username}: {result['tweet_id']}")
+                return True
+            else:
+                published_post.metrics['error'] = {
+                    'message': result['error'],
+                    'details': result.get('details', ''),
+                    'platform': 'X',
+                    'timestamp': timezone.now().isoformat(),
+                    'user_account': published_post.content.user.username
+                }
+                published_post.save()
+                logger.error(f"X publishing failed for user {published_post.content.user.username}: {result['error']}")
+                return False
+        
+        # Handle other platforms with existing logic
         else:
-            # Save error state
-            published_post.published_at = timezone.now()
-            if not published_post.metrics:
-                published_post.metrics = {'error': 'Unknown publishing error'}
-            published_post.save()
-            logger.error(f"Failed to publish post {published_post.id} to {published_post.platform}")
-            return False
+            return publish_to_platform(published_post, access_token)
+            
     except Exception as e:
-        logger.exception(f"Exception during publishing post {published_post.id}: {str(e)}")
-        published_post.published_at = timezone.now()
-        published_post.metrics = {'error': str(e)}
+        logger.error(f"Error in publish_content for {platform}: {str(e)}")
+        published_post.metrics['error'] = {
+            'message': str(e),
+            'platform': platform,
+            'timestamp': timezone.now().isoformat()
+        }
         published_post.save()
         return False
 

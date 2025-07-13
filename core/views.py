@@ -1,6 +1,8 @@
 # core/views.py
 import json
 import logging
+import requests
+from datetime import datetime, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -16,6 +18,7 @@ from .agents.publisher import publish_content, publish_scheduled_posts
 import requests
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+from django.urls import reverse
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -290,7 +293,7 @@ def generate_preview(request):
             if not platforms:
                 logger.info("No platforms specified, using all available platforms")
                 # If no specific platforms, generate for all
-                platforms = ['TW', 'FB', 'IG', 'LI', 'TT', 'YT']
+                platforms = ['X', 'FB', 'IG', 'LI', 'TT', 'YT']
             
             # Generate previews for each platform
             previews = {}
@@ -327,7 +330,7 @@ def generate_preview(request):
             
             # Platform-specific metadata
             platform_metadata = {
-                "TW": {"char_limit": 280, "name": "X"},
+                "X": {"char_limit": 280, "name": "X"},
                 "FB": {"char_limit": 5000, "name": "Facebook"},
                 "IG": {"char_limit": 2200, "name": "Instagram"},
                 "LI": {"char_limit": 3000, "name": "LinkedIn"},
@@ -624,15 +627,18 @@ def accounts(request):
 def connect_platform(request, platform):
     """Initiate platform connection flow"""
     try:
-        # For MVP, we'll simulate the connection
-        # In production, this would redirect to OAuth flow
-        
         # Check if already connected
         if SocialAccount.objects.filter(user=request.user, platform=platform).exists():
             messages.warning(request, f"You've already connected this platform")
             return redirect('accounts')
         
-        # Create placeholder account
+        # Handle X (Twitter) OAuth flow
+        if platform == 'X':
+            # Show OAuth info page first
+            return render(request, 'core/x_oauth_info.html')
+        
+        # For other platforms, use simulated connection for now
+        # In production, each would have their own OAuth flow
         SocialAccount.objects.create(
             user=request.user,
             platform=platform,
@@ -648,6 +654,121 @@ def connect_platform(request, platform):
         logger.error(f"Platform connection error: {str(e)}")
         platform_name = dict(SocialAccount.PLATFORM_CHOICES).get(platform, platform)
         messages.error(request, f"Failed to connect {platform_name}")
+        return redirect('accounts')
+
+@login_required
+def x_oauth_start(request):
+    """Start X OAuth 2.0 flow"""
+    try:
+        from .agents.oauth_service import x_oauth_service
+        
+        # Generate authorization URL
+        authorization_url, state, code_verifier = x_oauth_service.get_authorization_url(request)
+        
+        # Store state and code_verifier in session for validation
+        request.session['x_oauth_state'] = state
+        request.session['x_oauth_code_verifier'] = code_verifier
+        
+        logger.info(f"Starting X OAuth flow for user {request.user.username}")
+        
+        # Redirect user to X authorization page
+        return redirect(authorization_url)
+        
+    except Exception as e:
+        logger.error(f"X OAuth start error: {str(e)}")
+        messages.error(request, "Failed to start X authentication. Please try again.")
+        return redirect('accounts')
+
+@login_required
+def x_oauth_callback(request):
+    """Handle X OAuth 2.0 callback"""
+    try:
+        from .agents.oauth_service import x_oauth_service
+        
+        # Get authorization code and state from callback
+        authorization_code = request.GET.get('code')
+        returned_state = request.GET.get('state')
+        error = request.GET.get('error')
+        
+        # Check for errors
+        if error:
+            error_description = request.GET.get('error_description', 'Unknown error')
+            logger.error(f"X OAuth error: {error} - {error_description}")
+            messages.error(request, f"X authorization failed: {error_description}")
+            return redirect('accounts')
+        
+        if not authorization_code:
+            logger.error("No authorization code received from X")
+            messages.error(request, "Authorization failed. No code received from X.")
+            return redirect('accounts')
+        
+        # Validate state to prevent CSRF attacks
+        stored_state = request.session.get('x_oauth_state')
+        if not stored_state or stored_state != returned_state:
+            logger.error("Invalid state parameter in X OAuth callback")
+            messages.error(request, "Invalid authorization state. Please try again.")
+            return redirect('accounts')
+        
+        # Get code verifier from session
+        code_verifier = request.session.get('x_oauth_code_verifier')
+        if not code_verifier:
+            logger.error("No code verifier found in session")
+            messages.error(request, "Authorization session expired. Please try again.")
+            return redirect('accounts')
+        
+        # Exchange authorization code for access token
+        token_data = x_oauth_service.exchange_code_for_token(
+            request, authorization_code, returned_state, code_verifier
+        )
+        
+        if not token_data:
+            messages.error(request, "Failed to obtain access token from X. Please try again.")
+            return redirect('accounts')
+        
+        # Get user information
+        user_info = x_oauth_service.get_user_info(token_data['access_token'])
+        
+        if not user_info:
+            messages.error(request, "Failed to get user information from X. Please try again.")
+            return redirect('accounts')
+        
+        # Check if user already has this X account connected
+        existing_account = SocialAccount.objects.filter(
+            user=request.user, 
+            platform='X'
+        ).first()
+        
+        if existing_account:
+            # Update existing account
+            existing_account.access_token = token_data['access_token']
+            existing_account.username = user_info['username']
+            existing_account.connected_at = timezone.now()
+            existing_account.save()
+            
+            logger.info(f"Updated existing X account for user {request.user.username}")
+            messages.success(request, f"X account @{user_info['username']} updated successfully!")
+        else:
+            # Create new account
+            SocialAccount.objects.create(
+                user=request.user,
+                platform='X',
+                username=user_info['username'],
+                access_token=token_data['access_token'],
+                connected_at=timezone.now()
+            )
+            
+            logger.info(f"Connected new X account @{user_info['username']} for user {request.user.username}")
+            messages.success(request, f"X account @{user_info['username']} connected successfully!")
+        
+        # Clean up session
+        request.session.pop('x_oauth_state', None)
+        request.session.pop('x_oauth_code_verifier', None)
+        
+        return redirect('accounts')
+        
+    except Exception as e:
+        logger.error(f"X OAuth callback error: {str(e)}")
+        messages.error(request, "Failed to complete X authentication. Please try again.")
         return redirect('accounts')
 
 @login_required
@@ -845,3 +966,90 @@ def refresh_account(request, account_id):
         logger.error(f"Account refresh error: {str(e)}")
         messages.error(request, "Failed to refresh account")
         return redirect('accounts')
+
+@login_required
+def validate_x_credentials(request):
+    """Validate X API credentials"""
+    try:
+        from .agents.publisher import x_client
+        
+        # Check if credentials are configured
+        if not x_client.bearer_token:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'X API credentials not configured. Please add your X API credentials to continue.'
+            })
+        
+        # Test the credentials by making a simple API call
+        try:
+            headers = x_client.get_auth_headers()
+            response = requests.get(
+                f"{x_client.base_url}/users/me",
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                user_data = response.json()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'X API credentials are valid',
+                    'user': {
+                        'username': user_data['data'].get('username', 'Unknown'),
+                        'name': user_data['data'].get('name', 'Unknown'),
+                        'id': user_data['data'].get('id', 'Unknown')
+                    }
+                })
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'X API credentials invalid (HTTP {response.status_code})'
+                })
+                
+        except Exception as api_error:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'X API test failed: {str(api_error)}'
+            })
+            
+    except Exception as e:
+        logger.error(f"X credentials validation error: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Failed to validate X credentials'
+        })
+
+@login_required
+def test_x_post(request):
+    """Test posting to X with a simple message"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST method required'})
+    
+    try:
+        from .agents.publisher import x_client
+        
+        # Test message
+        test_message = "🚀 Testing ChapChap integration with X! #ChapChap #SocialMediaManagement"
+        
+        # Post the test tweet
+        result = x_client.post_tweet(test_message)
+        
+        if result['success']:
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Test post successful!',
+                'tweet_id': result['tweet_id'],
+                'tweet_url': f"https://twitter.com/i/web/status/{result['tweet_id']}"
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Test post failed: {result["error"]}'
+            })
+            
+    except Exception as e:
+        logger.error(f"X test post error: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Test post failed: {str(e)}'
+        })

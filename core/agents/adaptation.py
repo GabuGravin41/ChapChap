@@ -293,36 +293,22 @@ def format_for_platform(text, platform):
         text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove bold
         text = re.sub(r'\*(.*?)\*', r'\1', text)       # Remove italics
         
-        if platform == "TW":  # Twitter/X
-            # Ensure text fits in 280 characters
-            base_text = text
-            if len(base_text) > 240:
-                base_text = summarize_text(base_text, 240)
+        if platform == "X":  # X (Twitter)
+            # X has a 280 character limit
+            if len(text) > 280:
+                text = summarize_text(text, 280)
             
-            # Add relevant hashtags for X
-            hashtags = generate_hashtags(base_text, 3)
-            
-            # Create engaging X post
-            x_starters = [
-                "🧵 Thread: ",
-                "💡 Quick insight: ",
-                "🔥 Hot take: ",
-                "📈 Update: ",
-                ""  # Sometimes no starter
-            ]
-            
-            starter = random.choice(x_starters)
-            formatted_text = f"{starter}{base_text}"
-            
-            # Ensure we fit with hashtags
-            if len(formatted_text) + len(hashtags) + 2 <= 280:
-                return f"{formatted_text}\n\n{hashtags}"
-            else:
-                # Adjust text length to fit hashtags
-                max_text_length = 275 - len(hashtags)
-                if len(formatted_text) > max_text_length:
-                    formatted_text = formatted_text[:max_text_length-3] + "..."
-                return f"{formatted_text}\n\n{hashtags}"
+            # Add relevant hashtags (up to 2-3 for X)
+            hashtags = generate_hashtags(text, 3)
+            if hashtags:
+                # Check if adding hashtags would exceed limit
+                if len(text) + len(hashtags) + 1 <= 280:
+                    text = f"{text} {hashtags}"
+                else:
+                    # Shorten text to make room for hashtags
+                    available_space = 280 - len(hashtags) - 1
+                    text = summarize_text(text, available_space)
+                    text = f"{text} {hashtags}"
         
         elif platform == "IG":  # Instagram
             # Instagram loves visual storytelling
@@ -456,7 +442,7 @@ def adapt_content(text, platform, tone="professional"):
             logger.error("No content provided")
             return "No content provided. Please enter your content to adapt."
         
-        if not platform or platform not in ["TW", "FB", "IG", "LI", "TT", "YT"]:
+        if not platform or platform not in ["X", "FB", "IG", "LI", "TT", "YT"]:
             logger.warning(f"Invalid platform: {platform}, using original text")
             return text
         
@@ -515,7 +501,7 @@ def adapt_content(text, platform, tone="professional"):
         logger.error(f"Content adaptation error: {e}")
         # Absolute fallback: return original text with platform indicator
         platform_names = {
-            "TW": "X", 
+            "X": "X", 
             "FB": "Facebook", 
             "IG": "Instagram", 
             "LI": "LinkedIn", 
@@ -527,7 +513,7 @@ def adapt_content(text, platform, tone="professional"):
         fallback_text = text
         
         # Add platform-specific fallback elements
-        if platform == "TW":  # X
+        if platform == "X":  # X
             if len(fallback_text) > 280:
                 fallback_text = fallback_text[:277] + "..."
         elif platform == "IG":  # Instagram

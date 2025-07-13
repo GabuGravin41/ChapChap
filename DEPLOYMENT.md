@@ -28,7 +28,7 @@ git push origin main
 Add these environment variables in Render:
 - `DEBUG`: `False`
 - `SECRET_KEY`: Generate a new secure key
-- `TWITTER_API_KEY`: Your Twitter API key (optional)
+- `X_API_KEY`: Your X API key (optional)
 - `FACEBOOK_APP_ID`: Your Facebook App ID (optional)
 - `FACEBOOK_APP_SECRET`: Your Facebook App Secret (optional)
 - `LINKEDIN_CLIENT_ID`: Your LinkedIn Client ID (optional)
