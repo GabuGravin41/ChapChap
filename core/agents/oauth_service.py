@@ -22,7 +22,7 @@ class XOAuthService:
         self.client_id = getattr(settings, 'X_CLIENT_ID', '')
         self.client_secret = getattr(settings, 'X_CLIENT_SECRET', '')
         
-        # X OAuth 2.0 endpoints
+        # X OAuth 2.0 endpoints - Updated to correct URLs
         self.authorization_base_url = 'https://twitter.com/i/oauth2/authorize'
         self.token_url = 'https://api.twitter.com/2/oauth2/token'
         self.user_info_url = 'https://api.twitter.com/2/users/me'
@@ -32,6 +32,8 @@ class XOAuthService:
         
         if not self.client_id or not self.client_secret:
             logger.warning("X OAuth credentials not configured. Please set X_CLIENT_ID and X_CLIENT_SECRET in settings.")
+        else:
+            logger.info(f"X OAuth service initialized with client_id: {self.client_id[:10]}...")
     
     def generate_pkce_pair(self):
         """Generate PKCE code verifier and challenge"""
@@ -48,14 +50,19 @@ class XOAuthService:
         Returns: (authorization_url, state, code_verifier)
         """
         try:
+            logger.info("Starting authorization URL generation...")
+            
             # Generate PKCE parameters
             code_verifier, code_challenge = self.generate_pkce_pair()
+            logger.info(f"Generated PKCE - verifier length: {len(code_verifier)}, challenge length: {len(code_challenge)}")
             
             # Generate state for CSRF protection
             state = secrets.token_urlsafe(32)
+            logger.info(f"Generated state: {state[:10]}...")
             
             # Build redirect URI
             redirect_uri = request.build_absolute_uri(reverse('x_oauth_callback'))
+            logger.info(f"Redirect URI: {redirect_uri}")
             
             # Create OAuth2 session
             oauth = OAuth2Session(
@@ -64,6 +71,7 @@ class XOAuthService:
                 scope=self.scopes,
                 state=state
             )
+            logger.info(f"Created OAuth2Session with client_id: {self.client_id[:10]}...")
             
             # Generate authorization URL with PKCE
             authorization_url, state = oauth.authorization_url(
@@ -73,11 +81,19 @@ class XOAuthService:
                 code_challenge_method='S256'
             )
             
-            logger.info(f"Generated authorization URL for X OAuth")
+            logger.info(f"Generated authorization URL: {authorization_url[:100]}...")
+            logger.info(f"Authorization URL length: {len(authorization_url)}")
+            logger.info(f"Contains client_id: {'client_id=' in authorization_url}")
+            logger.info(f"Contains redirect_uri: {'redirect_uri=' in authorization_url}")
+            logger.info(f"Contains scope: {'scope=' in authorization_url}")
+            logger.info(f"Contains code_challenge: {'code_challenge=' in authorization_url}")
+            
             return authorization_url, state, code_verifier
             
         except Exception as e:
             logger.error(f"Error generating X authorization URL: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise
     
     def exchange_code_for_token(self, request, authorization_code, state, code_verifier):
